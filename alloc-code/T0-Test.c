@@ -5,20 +5,28 @@
 int main() {
   printf("PID: %d\n", getpid());
   printf("Press Enter to continue...\n");
-  getchar(); // pause 1 – before mmap
+  getchar(); // Pause 1 – before mmap
 
-  // TODO: mmap one anonymous page (size 4096)
-  // Use MAP_ANONYMOUS | MAP_PRIVATE,
-  // PROT_READ | PROT_WRITE Check return value
+  // Map one anonymous page (4KB)
+  void *ptr = mmap(NULL, 4096, PROT_READ | PROT_WRITE,
+                   MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
-  printf("After mmap, press Enter...\n");
-  getchar(); // pause 2 – after mmap, before writing
+  if (ptr == MAP_FILE) {
+    perror("mmap failed");
+    return 1;
+  }
 
-  // TODO: write at least one byte into the mapped page
+  printf("mmap succeeded at %p\n", ptr);
+  printf("Press Enter to continue (after mmpa, before write)...\n");
+  getchar(); // Pause 2
 
-  printf("After writing, press Enter to finish...\n");
-  getchar(); // pause 3 – after writing
+  // Write one byte into the page
+  ((char *)ptr)[0] = 'A';
+  printf("Wrote to page\n");
+  printf("Press Enter to continue (after write)...\n");
+  getchar(); // Pause 3 – after writing
 
-  // TODO: munmap the page
+  munmap(ptr, 4096);
+  printf("Unmaped, exiting.\n");
   return 0;
 }
