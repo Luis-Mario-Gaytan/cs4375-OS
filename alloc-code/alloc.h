@@ -78,8 +78,43 @@ int cleanup() {
   return 0;
 }
 
-// function declarations
-char *alloc(int);
-void dealloc(char *);
+char *alloc(int size) {
+  // Validate request
+  if (size <= 0 || size % MINALLOC != 0 || size > PAGESIZE)
+    return NULL;
+  int needed = size / GRANULE; // number of granules required
+  int start = find_free_run(needed);
+  if (start == -1)
+    return NULL; // not enough contiguos free space
+
+  // Mark granules as allocated
+  set_range(start, needed, 1);
+  // Record the size at the starting granule
+  alloc_size[start] = size;
+
+  return (char *)page_base + start * GRANULE;
+}
+
+void dealloc(char *ptr) {
+  if (!ptr || !page_base)
+    return;
+
+  // Compute granule index
+  int idx = (ptr - (char *)page_base) / GRANULE;
+  if (idx < 0 || idx >= NUM_GRANULES)
+    return; // pointer out of range
+
+  int size = alloc_size[idx];
+  if (size == 0) {
+    return; // not a valid allocated block
+  }
+
+  int count = size / GRANULE; // number of granules to free
+
+  // Clear the bits in the bitmap
+  set_range(idx, count, 0);
+  // Reset the size entry
+  alloc_size[idx] = 0;
+}
 
 #endif // ALLOC_H
