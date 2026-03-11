@@ -55,9 +55,30 @@ static int find_free_run(int needed) {
   return -1;
 }
 
+int init_alloc() {
+  // Request one 4KB anonymous page
+  page_base = mmap(NULL, PAGESIZE, PROT_READ | PROT_WRITE,
+                   MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+  if (page_base == MAP_FAILED)
+    return 1; // failure
+
+  // Clear metadata
+  memset(bitmap, 0, sizeof(bitmap));
+  memset(alloc_size, 0, sizeof(alloc_size));
+  return 0;
+}
+
+int cleanup() {
+  if (page_base) {
+    if (munmap(page_base, PAGESIZE) == -1)
+      return 1;
+    page_base = NULL;
+  }
+  // metadata is static will be overwritten on the next init_alloc
+  return 0;
+}
+
 // function declarations
-int init_alloc();
-int cleanup();
 char *alloc(int);
 void dealloc(char *);
 
