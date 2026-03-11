@@ -42,17 +42,17 @@ static int find_free_run(int needed) {
   int run_start = -1;
   int run_len = 0;
   for (int i = 0; i < NUM_GRANULES; i++) {
-    if (is_free(i)) {
-      if (run_len == 0)
+    if (is_free(i)) {   // granule i is free
+      if (run_len == 0) // start of a new run
         run_start = i;
-      run_len++;
-      if (run_start >= needed)
+      run_len++;             // extend current run
+      if (run_len >= needed) // found a run long enough
         return run_start;
-    } else {
-      run_len = 0;
+    } else {       // granule i is allocated
+      run_len = 0; // reset run
     }
   }
-  return -1;
+  return -1; // no suitable run found
 }
 
 int init_alloc() {
