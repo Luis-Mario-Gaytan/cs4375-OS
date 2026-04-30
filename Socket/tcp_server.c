@@ -1,75 +1,47 @@
+/*
+ * TCP Multi-threaded File Server
+ * CS4375 - Assignment 4
+ *
+ * This server handles multiple clients simultaneously using pthreads.
+ * It serves two files: bio.txt and bio.pdf
+ * Send data in chunks of 1200 bytes.
+ */
+
 #include <arpa/inet.h>
+#include <bits/pthreadtypes.h>
+#include <errno.h>
 #include <netinet/in.h>
 #include <pthread.h>
-#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
-#include <sys/types.h>
-#include <threads.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #define PORT 8080
-#define BUFFER_SIZE 1200
-#define FILE1 "bio.txt"
-#define FILE2 "bio.pdf"
+#define CHUNK_SIZE 1200
+#define MAX_CLIENT 100
 
-// Strucuture to pass client socket to thread
-typedef struct {
-  int client_fd;
+/*Structure to pass client info to thread */
+struct client_info {
+  int client_socket;
+  struct sockaddr_in client_addr;
   int client_id;
-} client_info_t;
+};
 
-// Function to send a file over a socket
-void send_file(int client_fd, const char *filename) {
-  FILE *file = fopen(filename, "rb");
-  if (!file) {
-    perror("fopen");
-    char error_msg[] = "ERROR: File not found\n";
-    send(client_fd, error_msg, strlen(error_msg), 0);
-    return;
-  }
+/* Mutex for thread-safe console output */
+pthread_mutex_t print_mutext = PTHREAD_MUTEX_INITIALIZER;
 
-  char buffer[BUFFER_SIZE];
-  size_t bytes_read;
-  while ((bytes_read = fread(buffer, 1, sizeof(buffer), file)) > 0) {
-    ssize_t sent = send(client_fd, buffer, bytes_read, 0);
-    if (sent != bytes_read) {
-      perror("send");
-      break;
-    }
+/*
+ * get_file_size - Returns the size of a file in bytes
+ */
+
+long get_file_size(const char *filename) {
+  struct stat st;
+  if (stat(filename, &st) == 0) {
+    return st.st_size;
   }
-  fclose(file);
+  return -1;
 }
 
-// Thread function to handle one client
-void *handle_client(void *arg) {
-  client_info_t *info = (client_info_t *)arg;
-  int client_fd = info->client_fd;
-  int client_id = info->client_id;
-  free(info); // free the allocated strurcture
-  printf("Handling client %d\n", client_id);
-  // Send file1
-  send_file(client_fd, FILE1);
-  // Send file2
-  send_file(client_fd, FILE2);
-  shutdown(client_fd, SHUT_WR); // Indicates no more data
-  close(client_fd);
-  printf("Client %d finished\n", client_id);
-  return NULL;
-}
-
-int main() {
-
-  int server_fd, client_fd;
-  struct sockaddr_in address;
-  int addrlen = sizeof(address);
-  int client_counter = 0;
-
-  // Create socket
-  if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
-    perror("socket failed");
-    exit(EXIT_FAILURE);
-  }
-}
